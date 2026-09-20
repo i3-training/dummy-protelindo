@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="MyBlazorApp/MyBlazorApp.csproj" />
+  <Project Path="MyClassLib/MyClassLib.csproj" />
+  <Project Path="MyWebApi/MyWebApi.csproj" />
+  <Project Path="MyWebApp/MyWebApp.csproj" />
+</Solution>

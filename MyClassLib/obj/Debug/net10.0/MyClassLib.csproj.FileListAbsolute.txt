@@ -1,0 +1,11 @@
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\bin\Debug\net10.0\MyClassLib.deps.json
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\bin\Debug\net10.0\MyClassLib.dll
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\bin\Debug\net10.0\MyClassLib.pdb
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\MyClassLib.GeneratedMSBuildEditorConfig.editorconfig
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\MyClassLib.AssemblyInfoInputs.cache
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\MyClassLib.AssemblyInfo.cs
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\MyClassLib.csproj.CoreCompileInputs.cache
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\MyClassLib.dll
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\refint\MyClassLib.dll
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\MyClassLib.pdb
+D:\My Job\ProtelindoDotNetSuite\MyClassLib\obj\Debug\net10.0\ref\MyClassLib.dll
