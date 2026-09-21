@@ -16,12 +16,7 @@ permissions:
 jobs:
   build-test-scan-publish:
     name: Build, Scan, Auto-Tag & Package .NET Suite
-    runs-on: self-hosted
-
-    # HAPUS ATAU KOMENTAR BAGIAN DEFAULTS WORKING DIRECTORY INI:
-    # defaults:
-    #   run:
-    #     working-directory: ProtelindoDotNetSuite
+    runs-on: ubuntu-latest
 
     steps:
     # 1. Checkout Repository
