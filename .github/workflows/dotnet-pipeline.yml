@@ -19,7 +19,7 @@ permissions:
 jobs:
   build-test-scan-publish:
     name: Build, Scan, Auto-Tag & Package .NET Suite
-    runs-on: self-hosted # Atau 'ubuntu-latest'
+    runs-on: ubuntu-latest
 
     defaults:
       run:
