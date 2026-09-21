@@ -4,14 +4,11 @@ on:
   push:
     branches: [ "main", "master", "feature/*" ]
     paths:
-      - 'ProtelindoDotNetSuite/**'
+      - '**'
       - '.github/workflows/dotnet-pipeline.yml'
   pull_request:
     branches: [ "main", "master" ]
-    paths:
-      - 'ProtelindoDotNetSuite/**'
 
-# Izin penulisan token untuk membuat Git Tag otomatis
 permissions:
   contents: write
   packages: write
@@ -19,18 +16,19 @@ permissions:
 jobs:
   build-test-scan-publish:
     name: Build, Scan, Auto-Tag & Package .NET Suite
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
-    #defaults:
-    #  run:
-    #    working-directory: ProtelindoDotNetSuite
+    # HAPUS ATAU KOMENTAR BAGIAN DEFAULTS WORKING DIRECTORY INI:
+    # defaults:
+    #   run:
+    #     working-directory: ProtelindoDotNetSuite
 
     steps:
     # 1. Checkout Repository
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Wajib depth 0 untuk SonarQube & Git Tagging history
+        fetch-depth: 0
 
     # 2. Setup .NET 8 SDK
     - name: Setup .NET SDK
@@ -40,7 +38,7 @@ jobs:
 
     # 3. Restore Dependencies
     - name: Restore Dependencies
-      run: dotnet restore ProtelindoDotNetSuite.sln
+      run: dotnet restore ProtelindoDotNetSuite.slnx
 
     # 4. Install & Run SonarQube Scanner
     - name: Install SonarScanner
@@ -75,9 +73,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
-    # -------------------------------------------------------------
-    # 8. AUTO GIT TAGGING (Hanya berjalan di branch main/master)
-    # -------------------------------------------------------------
+    # 8. AUTO GIT TAGGING
     - name: Bump Version and Push Git Tag
       id: autotag
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -85,24 +81,22 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         WITH_V: true
-        DEFAULT_BUMP: patch # Otomatis naikkan versi patch (misal: v1.0.0 -> v1.0.1)
+        DEFAULT_BUMP: patch
         RELEASE_BRANCHES: main,master
 
-    # 9. Publish Web API Artifact (Siap Deploy ke VM)
+    # 9. Publish Web API Artifact
     - name: Publish MyWebApi
       run: dotnet publish MyWebApi/MyWebApi.csproj -c Release -o ./publish/webapi --no-build
 
-    # 10. Upload Artifact ke GitHub Release / Actions Artifact
+    # 10. Upload Artifact (Path disesuaikan tanpa prefix ProtelindoDotNetSuite)
     - name: Upload WebAPI Artifact
       uses: actions/upload-artifact@v4
       with:
         name: webapi-${{ steps.autotag.outputs.new_tag || github.sha }}
-        path: ProtelindoDotNetSuite/publish/webapi/
+        path: publish/webapi/
         retention-days: 7
 
-    # -------------------------------------------------------------
-    # 11. AUTO DOCKER TAGGING & PUSH (Jika menggunakan Container)
-    # -------------------------------------------------------------
+    # 11. AUTO DOCKER TAGGING & PUSH
     - name: Log in to Docker Hub
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       uses: docker/login-action@v3
@@ -125,8 +119,8 @@ jobs:
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       uses: docker/build-push-action@v5
       with:
-        context: ProtelindoDotNetSuite
-        file: ProtelindoDotNetSuite/MyWebApi/Dockerfile
+        context: .
+        file: MyWebApi/Dockerfile
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
         labels: ${{ steps.docker_meta.outputs.labels }}
