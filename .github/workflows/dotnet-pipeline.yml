@@ -31,7 +31,7 @@ jobs:
       uses: ./.github/action/dotnet-build-and-scan
       with:
         dotnet-version: '8.0.x'
-        solution-file: 'ProtelindoDotNetSuite.slnx' # Konsisten menggunakan file .slnx
+        solution-file: 'ProtelindoDotNetSuite.sln' # Konsisten menggunakan file .slnx
         sonar-project-key: 'ProtelindoDotNetSuite'
         sonar-host-url: ${{ secrets.SONAR_HOST_URL }}
         sonar-token: ${{ secrets.SONAR_TOKEN }}
