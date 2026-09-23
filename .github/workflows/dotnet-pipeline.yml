@@ -10,21 +10,32 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+# Membatalkan run sebelumnya yang masih berjalan di branch/PR yang sama
+# ketika ada push baru, supaya tidak ada run lama & baru rebutan resource
+# di self-hosted runner (yang jumlahnya terbatas, tidak seperti GitHub-hosted).
+concurrency:
+  group: dotnet-pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: write
-  packages: write
+  contents: write   # dibutuhkan untuk push git tag (auto-tagging)
+  packages: write   # hapus baris ini jika tidak publish ke GitHub Packages
 
 jobs:
   build-test-scan-publish:
     name: Build, Scan, Auto-Tag & Package .NET Suite
     runs-on: self-hosted
 
+    # Safety net: mencegah job menggantung tanpa batas waktu di self-hosted
+    # runner jika ada step yang hang (misal SonarQube tidak respons).
+    timeout-minutes: 30
+
     steps:
     # 1. Checkout Repository
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0   # wajib untuk auto-tag action, agar histori tag lengkap
 
     # 2. Panggil Composite Action (Build, Test & Sonar Scan)
     - name: Run .NET Build and Scan Composite Action
@@ -37,9 +48,12 @@ jobs:
         sonar-token: ${{ secrets.SONAR_TOKEN }}
 
     # 3. AUTO GIT TAGGING
+    # Catatan: step ini hanya tereksekusi jika step di atas (build/test/scan)
+    # sukses, karena default behavior job berhenti begitu ada step yang gagal.
+    # Jangan pindahkan step ini ke atas Build/Test.
     - name: Bump Version and Push Git Tag
       id: autotag
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
       uses: anothrNick/github-tag-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,7 +75,7 @@ jobs:
 
     # 6. AUTO DOCKER TAGGING & PUSH
     - name: Log in to Docker Hub
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -69,7 +83,7 @@ jobs:
 
     - name: Extract Metadata & Auto-Tag Docker Image
       id: docker_meta
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
       uses: docker/metadata-action@v5
       with:
         images: ${{ secrets.DOCKERHUB_USERNAME }}/protelindo-webapi
@@ -79,7 +93,7 @@ jobs:
           type=sha,format=short
 
     - name: Build and Push Docker Image
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
       uses: docker/build-push-action@v5
       with:
         context: .

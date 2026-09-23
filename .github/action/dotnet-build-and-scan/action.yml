@@ -23,7 +23,24 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # # 1. Setup .NET SDK
+    # 0. Validasi input wajib lebih awal.
+    # Mencegah pipeline jalan lama (restore+build) baru gagal di step Sonar
+    # gara-gara secret kosong/salah nama - fail fast dengan pesan jelas.
+    - name: Validate required inputs
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.sonar-host-url }}" ]; then
+          echo "::error::sonar-host-url kosong. Cek secret SONAR_HOST_URL di repo/organization settings."
+          exit 1
+        fi
+        if [ -z "${{ inputs.sonar-token }}" ]; then
+          echo "::error::sonar-token kosong. Cek secret SONAR_TOKEN di repo/organization settings."
+          exit 1
+        fi
+
+    # 1. Setup .NET SDK
+    # DOTNET_INSTALL_DIR diarahkan ke workspace karena runner (self-hosted)
+    # tidak punya write access ke /usr/share/dotnet (default install path).
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       env:
@@ -31,12 +48,41 @@ runs:
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
 
-    # 2. Restore Dependencies
+    # Env tambahan untuk mempercepat & menstabilkan perilaku CLI dotnet:
+    # - Skip logo/first-time experience biar output log bersih & startup lebih cepat
+    # - Opt-out telemetry (tidak relevan & sedikit menghemat waktu di CI)
+    - name: Set .NET CLI environment
+      shell: bash
+      run: |
+        echo "DOTNET_NOLOGO=true" >> $GITHUB_ENV
+        echo "DOTNET_CLI_TELEMETRY_OPTOUT=true" >> $GITHUB_ENV
+        echo "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true" >> $GITHUB_ENV
+
+    # 2. Cache NuGet packages
+    # Key berbasis hash semua csproj/lock file supaya cache otomatis invalidate
+    # begitu ada perubahan dependency. Mempercepat restore secara signifikan
+    # pada run berikutnya jika tidak ada perubahan dependency.
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    # 3. Restore Dependencies
     - name: Restore Dependencies
       shell: bash
       run: dotnet restore ${{ inputs.solution-file }}
 
-    # 3. Install & Begin SonarQube Scanner
+    # 4. Install & Begin SonarQube Scanner
+    # Tool cache ikut di-cache juga supaya tidak install ulang setiap run.
+    - name: Cache dotnet tools
+      uses: actions/cache@v4
+      with:
+        path: ~/.dotnet/tools
+        key: ${{ runner.os }}-dotnet-tools-sonarscanner
+
     - name: Install SonarScanner
       shell: bash
       run: |
@@ -55,20 +101,30 @@ runs:
           /d:sonar.token="${{ inputs.sonar-token }}" \
           /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
 
-    # 4. Build Solution
+    # 5. Build Solution
     - name: Build Solution
       shell: bash
       run: dotnet build ${{ inputs.solution-file }} -c Release --no-restore
 
-    # 5. Run Unit Tests
+    # 6. Run Unit Tests
+    # PENTING: tidak lagi pakai "|| true". Menyembunyikan test failure membuat
+    # pipeline selalu "hijau" walau ada test yang gagal - berbahaya untuk
+    # kualitas & bisa lolos ke production. Kegagalan test akan menghentikan
+    # step ini, tapi SonarQube End tetap jalan (lihat if: always() di bawah)
+    # supaya hasil scan parsial tetap terkirim untuk investigasi.
     - name: Run Tests
       shell: bash
       run: |
         dotnet test ${{ inputs.solution-file }} -c Release --no-build \
-          --collect:"XPlat Code Coverage" || true
+          --collect:"XPlat Code Coverage" \
+          --logger "trx;LogFileName=test-results.trx"
 
-    # 6. End SonarQube Analysis
+    # 7. End SonarQube Analysis
+    # if: always() memastikan SonarQube End tetap dieksekusi walau step Run
+    # Tests di atas gagal, supaya sesi scan tidak nyangkut/corrupt di server
+    # SonarQube dan hasil parsial tetap ter-report.
     - name: SonarQube End
+      if: always()
       shell: bash
       env:
         SONAR_TOKEN: ${{ inputs.sonar-token }}
