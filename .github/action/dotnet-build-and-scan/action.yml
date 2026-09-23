@@ -1,0 +1,73 @@
+name: 'DotNet Build, Test & SonarQube Scan'
+description: 'Composite action untuk restore, setup SonarQube, build, test, dan kirim hasil scan .NET'
+
+inputs:
+  dotnet-version:
+    description: 'Versi .NET SDK'
+    required: false
+    default: '8.0.x'
+  solution-file:
+    description: 'Nama file solution (.sln atau .slnx)'
+    required: false
+    default: 'ProtelindoDotNetSuite.slnx'
+  sonar-project-key:
+    description: 'SonarQube Project Key'
+    required: true
+  sonar-host-url:
+    description: 'SonarQube Host URL'
+    required: true
+  sonar-token:
+    description: 'SonarQube Security Token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # 1. Setup .NET SDK
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    # 2. Restore Dependencies
+    - name: Restore Dependencies
+      shell: bash
+      run: dotnet restore ${{ inputs.solution-file }}
+
+    # 3. Install & Begin SonarQube Scanner
+    - name: Install SonarScanner
+      shell: bash
+      run: |
+        dotnet tool install --global dotnet-sonarscanner || true
+        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+    - name: SonarQube Begin
+      shell: bash
+      env:
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+        SONAR_HOST_URL: ${{ inputs.sonar-host-url }}
+      run: |
+        dotnet-sonarscanner begin \
+          /k:"${{ inputs.sonar-project-key }}" \
+          /d:sonar.host.url="${{ inputs.sonar-host-url }}" \
+          /d:sonar.token="${{ inputs.sonar-token }}" \
+          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+
+    # 4. Build Solution
+    - name: Build Solution
+      shell: bash
+      run: dotnet build ${{ inputs.solution-file }} -c Release --no-restore
+
+    # 5. Run Unit Tests
+    - name: Run Tests
+      shell: bash
+      run: |
+        dotnet test ${{ inputs.solution-file }} -c Release --no-build \
+          --collect:"XPlat Code Coverage" || true
+
+    # 6. End SonarQube Analysis
+    - name: SonarQube End
+      shell: bash
+      env:
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+      run: dotnet-sonarscanner end /d:sonar.token="${{ inputs.sonar-token }}"
