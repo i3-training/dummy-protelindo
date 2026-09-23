@@ -30,7 +30,7 @@ jobs:
     - name: Run .NET Build and Scan Composite Action
       uses: ./.github/action/dotnet-build-and-scan
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '10.0.401'
         solution-file: 'ProtelindoDotNetSuite.sln' # Konsisten menggunakan file .slnx
         sonar-project-key: 'ProtelindoDotNetSuite'
         sonar-host-url: ${{ secrets.SONAR_HOST_URL }}
@@ -59,7 +59,7 @@ jobs:
         path: publish/webapi/
         retention-days: 7
 
-    # 6. AUTO DOCKER TAGGING & PUSH fg
+    # 6. AUTO DOCKER TAGGING & PUSH
     - name: Log in to Docker Hub
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       uses: docker/login-action@v3
