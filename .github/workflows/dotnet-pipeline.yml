@@ -28,7 +28,7 @@ jobs:
 
     # 2. Panggil Composite Action (Build, Test & Sonar Scan)
     - name: Run .NET Build and Scan Composite Action
-      uses: ./.github/actions/dotnet-build-and-scan
+      uses: ./.github/action/dotnet-build-and-scan
       with:
         dotnet-version: '8.0.x'
         solution-file: 'ProtelindoDotNetSuite.slnx' # Konsisten menggunakan file .slnx
