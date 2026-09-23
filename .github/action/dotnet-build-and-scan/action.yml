@@ -23,11 +23,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # 1. Setup .NET SDK
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ inputs.dotnet-version }}
+    # # 1. Setup .NET SDK
+    # - name: Setup .NET SDK
+    #   uses: actions/setup-dotnet@v4
+    #   with:
+    #     dotnet-version: ${{ inputs.dotnet-version }}
 
     # 2. Restore Dependencies
     - name: Restore Dependencies
