@@ -17,7 +17,7 @@ permissions:
 jobs:
   build-test-scan-publish:
     name: Build, Scan, Auto-Tag & Package .NET Suite
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     # 1. Checkout Repository
